@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อสอบกลางภาค คณะทันตแพทยศาสตร์ มหาวิทยาลัยเบงจันทร์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #002147; /* สีกรมท่า มหาวิทยาลัยเบงจันทร์ */
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .header h2 {
+            margin: 5px 0 0;
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #d1d5db;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #00152e;
+        }
+        .subject-container {
+            margin-top: 30px;
+            border-top: 3px solid var(--primary-color);
+            padding-top: 20px;
+        }
+        .subject-title {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .question-block {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #f3f4f6;
+        }
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .options label {
+            display: block;
+            font-weight: 400;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .options input {
+            margin-right: 10px;
+        }
+        #resultArea {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+        }
+        .grade-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .grade-table th, .grade-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+        .grade-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .gpa-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.2rem; }
+            .container { padding: 15px; margin: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>ข้อสอบกลางภาค คณะแพทยศาสตร์</h1>
+        <h2>มหาวิทยาลัยเบงจันทร์ ปีการศึกษา 2569</h2>
+    </div>
+
+    <div class="container" id="loginArea">
+        <div class="form-group">
+            <label for="studentName">ชื่อ-นามสกุล นักศึกษาทันตแพทย์</label>
+            <input type="text" id="studentName" placeholder="กรอกชื่อและนามสกุล" required>
+        </div>
+        <div class="form-group">
+            <label for="studyYear">เลือกชั้นปีที่กำลังศึกษา</label>
+            <select id="studyYear">
+                <option value="">-- กรุณาเลือกชั้นปี --</option>
+                <option value="year1">ปี 1 เทอม 1</option>
+                <option value="year2">ปี 2 เทอม 1</option>
+                <option value="year3">ปี 3 เทอม 1</option>
+                <option value="year4">ปี 4 ทั้งเทอม</option>
+                <option value="year5">ปี 5 ทั้งเทอม</option>
+                <option value="year6">ปี 6 (Externship)</option>
+            </select>
+        </div>
+        <button onclick="startExam()">เริ่มทำข้อสอบ</button>
+    </div>
+
+    <div class="container" id="examArea" style="display: none;">
+        <form id="examForm"></form>
+        <button type="button" onclick="submitExam()" style="margin-top: 20px; background-color: #28a745;">ส่งข้อสอบและประมวลผลเกรด</button>
+    </div>
+
+    <div class="container" id="resultArea">
+        <h2 style="text-align: center; color: var(--primary-color);">ใบรายงานผลการสอบ (Transcript)</h2>
+        <p><strong>ชื่อนักศึกษา: </strong><span id="resName"></span></p>
+        <p><strong>ชั้นปี: </strong><span id="resYear"></span></p>
+        <table class="grade-table">
+            <thead>
+                <tr>
+                    <th>รายวิชา</th>
+                    <th>คะแนน (เต็ม 10)</th>
+                    <th>เกรดที่ได้</th>
+                </tr>
+            </thead>
+            <tbody id="gradeBody"></tbody>
+        </table>
+        <div class="gpa-display">GPA: <span id="finalGPA"></span></div>
+    </div>
+
+<script>
+    // 1. ตั้งค่า Firebase (นำข้อมูลจากขั้นตอนที่ 1 มาใส่ตรงนี้)
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "bengchan-med-exam.firebaseapp.com",
+        projectId: "bengchan-med-exam",
+        storageBucket: "bengchan-med-exam.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 2. ฐานข้อมูลข้อสอบ (ตัวอย่างสำหรับปี 1 สมบูรณ์ 100%)
+    const examData = {
+"year1": {
+            "ชีววิทยาทั่วไป": [
+                { q: "1. สารพันธุกรรมในเซลล์ยูคาริโอตส่วนใหญ่อยู่ที่ใด?", opts: ["Cytoplasm", "Nucleus", "Mitochondria", "Ribosome"], ans: 1 },
+                { q: "2. กระบวนการสลายสารอาหารเพื่อให้ได้พลังงานในรูป ATP คือ?", opts: ["Photosynthesis", "Cellular respiration", "Protein synthesis", "DNA replication"], ans: 1 },
+                { q: "3. ออร์แกเนลล์ใดทำหน้าที่สร้างโปรตีน?", opts: ["Lysosome", "Golgi apparatus", "Ribosome", "Centriole"], ans: 2 },
+                { q: "4. การแบ่งเซลล์แบบใดที่ได้เซลล์ลูกที่มีโครโมโซมเท่าเดิม?", opts: ["Mitosis", "Meiosis", "Binary fission", "Budding"], ans: 0 },
+                { q: "5. โครงสร้างใดพบเฉพาะในเซลล์พืช?", opts: ["Cell membrane", "Cell wall", "Mitochondria", "Nucleus"], ans: 1 },
+                { q: "6. เอนไซม์มีหน้าที่หลักคืออะไร?", opts: ["เพิ่มอุณหภูมิปฏิกิริยา", "ลดพลังงานกระตุ้น", "เปลี่ยนสารตั้งต้นเป็นโปรตีน", "ทำลายสารพันธุกรรม"], ans: 1 },
+                { q: "7. เยื่อหุ้มเซลล์มีโครงสร้างหลักแบบใด?", opts: ["Phospholipid bilayer", "Protein layer", "Cellulose", "Chitin"], ans: 0 },
+                { q: "8. ลำดับของนิวคลีโอไทด์ใน DNA ที่เป็นตัวกำหนดโปรตีนเรียกว่าอะไร?", opts: ["Gene", "Allele", "Locus", "Chromosome"], ans: 0 },
+                { q: "9. ออสโมซิส (Osmosis) คือการเคลื่อนที่ของอะไร?", opts: ["Solute", "Solvent (น้ำ)", "Gas", "Ion"], ans: 1 },
+                { q: "10. ความหลากหลายทางชีวภาพสำคัญอย่างไร?", opts: ["สร้างความสมดุลของระบบนิเวศ", "ทำให้อากาศบริสุทธิ์", "เป็นแหล่งอาหาร", "ถูกทุกข้อ"], ans: 3 }
+            ],
+            "เคมีอินทรีย์": [
+                { q: "1. พันธะที่พบในโมเลกุลของไฮโดรคาร์บอนคือ?", opts: ["Ionic", "Covalent", "Metallic", "Hydrogen bond"], ans: 1 },
+                { q: "2. สารประกอบที่มีสูตรโมเลกุลเหมือนกันแต่โครงสร้างต่างกันเรียกว่า?", opts: ["Isomer", "Isotope", "Ion", "Element"], ans: 0 },
+                { q: "3. กลุ่มฟังก์ชันใดที่พบในแอลกอฮอล์?", opts: ["-OH", "-COOH", "-CHO", "-NH2"], ans: 0 },
+                { q: "4. กรดคาร์บอกซิลิกมีสมบัติเป็นอย่างไร?", opts: ["กรด", "เบส", "เป็นกลาง", "ไม่มีสมบัติ"], ans: 0 },
+                { q: "5. ปฏิกิริยาที่เปลี่ยนแอลกอฮอล์เป็นเอสเทอร์เรียกว่า?", opts: ["Esterification", "Combustion", "Hydrolysis", "Oxidation"], ans: 0 },
+                { q: "6. แอลเคนมีพันธะระหว่างคาร์บอนเป็นแบบใด?", opts: ["พันธะเดี่ยว", "พันธะคู่", "พันธะสาม", "พันธะอะโรมาติก"], ans: 0 },
+                { q: "7. สารประกอบใดเป็นตัวอย่างของสารประกอบอะโรมาติก?", opts: ["Benzene", "Methane", "Ethanol", "Acetic acid"], ans: 0 },
+                { q: "8. หมู่ -CHO คือหมู่ฟังก์ชันของสารใด?", opts: ["Aldehyde", "Ketone", "Alcohol", "Ether"], ans: 0 },
+                { q: "9. ปฏิกิริยาการรวมตัวของมอนอเมอร์เรียกว่า?", opts: ["Polymerization", "Substitution", "Addition", "Elimination"], ans: 0 },
+                { q: "10. คุณสมบัติการละลายของสารอินทรีย์ส่วนใหญ่คือ?", opts: ["ละลายน้ำได้ดี", "ละลายในตัวทำละลายอินทรีย์", "ละลายได้ทุกอย่าง", "ไม่ละลายเลย"], ans: 1 }
+            ],
+            "ฟิสิกส์การแพทย์": [
+                { q: "1. หน่วยวัดความดันในระบบ SI คืออะไร?", opts: ["Pascal", "Joule", "Watt", "Newton"], ans: 0 },
+                { q: "2. รังสีเอ็กซ์ที่ใช้ในทางทันตกรรมมีสมบัติสำคัญคือ?", opts: ["อำนาจทะลุทะลวง", "สะท้อนแสง", "เป็นคลื่นเสียง", "ไม่มีผลต่อฟิล์ม"], ans: 0 },
+                { q: "3. อัลตราซาวด์มีความถี่อยู่ในช่วงใด?", opts: ["เหนือ 20,000 Hz", "ต่ำกว่า 20 Hz", "ช่วงหูมนุษย์ได้ยิน", "ช่วงแสง"], ans: 0 },
+                { q: "4. ความดันในของเหลวขึ้นอยู่กับปัจจัยใด?", opts: ["ความลึก", "สี", "กลิ่น", "อุณหภูมิห้อง"], ans: 0 },
+                { q: "5. เลนส์ที่ใช้แก้ไขสายตาสั้นคือ?", opts: ["เลนส์เว้า", "เลนส์นูน", "กระจกเงา", "ปริซึม"], ans: 0 },
+                { q: "6. เครื่องมือวัดความดันโลหิตเรียกว่า?", opts: ["Sphygmomanometer", "Thermometer", "Stethoscope", "Microscope"], ans: 0 },
+                { q: "7. พลังงานจลน์สัมพันธ์กับสิ่งใด?", opts: ["ความเร็ว", "ตำแหน่ง", "ความสูง", "ความดัน"], ans: 0 },
+                { q: "8. กัมมันตภาพรังสีมีหน่วยเป็นอะไร?", opts: ["Becquerel", "Meter", "Liter", "Second"], ans: 0 },
+                { q: "9. การไหลแบบปั่นป่วน (Turbulent flow) พบได้ในสถานการณ์ใด?", opts: ["หลอดเลือดตีบ", "ท่อตรงเรียบ", "น้ำนิ่ง", "น้ำแข็ง"], ans: 0 },
+                { q: "10. หลักของ Bernoulli เกี่ยวข้องกับอะไร?", opts: ["ของไหล", "แสง", "ความร้อน", "แม่เหล็ก"], ans: 0 }
+            ],
+            "ภาษาอังกฤษพื้นฐาน 1 (GE)": [
+                { q: "1. Choose the correct verb: She ___ to the dentist yesterday.", opts: ["go", "goes", "went", "gone"], ans: 2 },
+                { q: "2. Synonym of 'Oral' is:", opts: ["Mouth", "Eye", "Ear", "Nose"], ans: 0 },
+                { q: "3. What is the plural of 'Tooth'?", opts: ["Tooths", "Teeth", "Toothies", "Teethes"], ans: 1 },
+                { q: "4. Complete: I am ___ medicine.", opts: ["study", "studies", "studying", "studied"], ans: 2 },
+                { q: "5. Antonym of 'Healthy' is:", opts: ["Sick", "Strong", "Well", "Fit"], ans: 0 },
+                { q: "6. Which one is a noun?", opts: ["Dental", "Dentist", "Dentally", "Dent"], ans: 1 },
+                { q: "7. Choose the correct question: ___ is your name?", opts: ["What", "Where", "When", "Why"], ans: 0 },
+                { q: "8. Past tense of 'Eat' is:", opts: ["Eats", "Ate", "Eating", "Eaten"], ans: 1 },
+                { q: "9. 'Caries' refers to:", opts: ["Tooth decay", "Healthy tooth", "Gum", "Bone"], ans: 0 },
+                { q: "10. She ___ speak English well.", opts: ["can", "cans", "canned", "is can"], ans: 0 }
+            ],
+            "กลุ่มวิชาศึกษาทั่วไป (GE)": [
+                { q: "1. การคิดเชิงวิพากษ์ (Critical Thinking) คืออะไร?", opts: ["การคิดอย่างมีเหตุผล", "การเชื่อตามคนอื่น", "การไม่คิดเลย", "การคิดตามอารมณ์"], ans: 0 },
+                { q: "2. จริยธรรมในวิชาชีพมีความสำคัญอย่างไร?", opts: ["สร้างความน่าเชื่อถือ", "ทำให้รวยเร็ว", "ลดภาระงาน", "ทำให้เป็นคนดัง"], ans: 0 },
+                { q: "3. พลเมืองโลกหมายถึงอะไร?", opts: ["ผู้ที่มีความรับผิดชอบต่อสังคมโลก", "คนที่เดินทางบ่อย", "คนที่พูดหลายภาษา", "คนที่มีพาสปอร์ต"], ans: 0 },
+                { q: "4. ประโยชน์ของการศึกษาประวัติศาสตร์คือ?", opts: ["เข้าใจอดีตเพื่อพัฒนาปัจจุบัน", "เพื่อความสนุก", "ไม่มีประโยชน์", "เพื่อสอบให้ผ่าน"], ans: 0 },
+                { q: "5. ทักษะในศตวรรษที่ 21 ที่สำคัญคือ?", opts: ["การเรียนรู้ตลอดชีวิต", "การเขียนกระดาษ", "การคำนวณเลข", "การท่องจำ"], ans: 0 },
+                { q: "6. สิทธิมนุษยชนคือ?", opts: ["สิทธิพื้นฐานของมนุษย์ทุกคน", "สิทธิของคนรวย", "สิทธิของคนไทยเท่านั้น", "ไม่มีจริง"], ans: 0 },
+                { q: "7. ความยั่งยืน (Sustainability) หมายถึง?", opts: ["การใช้ทรัพยากรที่คงอยู่ยาวนาน", "การใช้ให้หมดไป", "การไม่ใช้เลย", "การทำลาย"], ans: 0 },
+                { q: "8. การทำงานเป็นทีมต้องอาศัย?", opts: ["ความร่วมมือ", "การแข่งขัน", "การบ่น", "การหลีกเลี่ยง"], ans: 0 },
+                { q: "9. ศิลปะมีประโยชน์ต่อจิตใจอย่างไร?", opts: ["สร้างความผ่อนคลาย", "ทำให้เสียเวลา", "ไม่มีผล", "ทำให้ปวดหัว"], ans: 0 },
+                { q: "10. เทคโนโลยีสารสนเทศช่วยให้ชีวิตง่ายขึ้นอย่างไร?", opts: ["เข้าถึงข้อมูลได้เร็ว", "ทำให้ขี้เกียจ", "เพิ่มงาน", "ทำให้สื่อสารไม่ได้"], ans: 0 }
+            ],
+            "ความรู้นำทางสู่วิชาชีพทันตแพทย์": [
+                { q: "1. อวัยวะที่สำคัญที่สุดในการบดเคี้ยวคือ?", opts: ["ฟัน", "หู", "ตา", "จมูก"], ans: 0 },
+                { q: "2. ทันตแพทย์มีหน้าที่หลักคือ?", opts: ["ดูแลรักษาช่องปากและฟัน", "รักษาโรคหัวใจ", "ผ่าตัดสมอง", "ดูแลเรื่องอาหาร"], ans: 0 },
+                { q: "3. ฟันน้ำนมในมนุษย์มีกี่ซี่?", opts: ["20 ซี่", "32 ซี่", "10 ซี่", "40 ซี่"], ans: 0 },
+                { q: "4. โครงสร้างแข็งที่สุดในร่างกายคือ?", opts: ["เคลือบฟัน (Enamel)", "กระดูก", "เล็บ", "เส้นผม"], ans: 0 },
+                { q: "5. โรคที่พบบ่อยที่สุดในช่องปากคือ?", opts: ["ฟันผุและโรคเหงือก", "ต้อกระจก", "ไข้หวัด", "หอบหืด"], ans: 0 },
+                { q: "6. การแปรงฟันที่ถูกวิธีช่วยป้องกันอะไร?", opts: ["ฟันผุและโรคเหงือก", "มะเร็ง", "ไข้", "หัวใจ"], ans: 0 },
+                { q: "7. ฟันแท้ซี่แรกที่ขึ้นในช่องปากคือฟันอะไร?", opts: ["ฟันกรามซี่ที่หนึ่ง", "ฟันหน้า", "ฟันเขี้ยว", "ฟันกรามซี่สุดท้าย"], ans: 0 },
+                { q: "8. อุปกรณ์ช่วยทำความสะอาดระหว่างซี่ฟันคือ?", opts: ["ไหมขัดฟัน", "เข็มกลัด", "ไม้จิ้มฟัน", "มีด"], ans: 0 },
+                { q: "9. ทันตกรรมป้องกันคืออะไร?", opts: ["การป้องกันไม่ให้เกิดโรค", "การถอนฟัน", "การใส่ฟันปลอม", "การผ่าตัด"], ans: 0 },
+                { q: "10. คุณสมบัติของทันตแพทย์ที่ดีควรมีคือ?", opts: ["ความละเอียดรอบคอบและใจรักบริการ", "ความใจร้อน", "ความไม่ใส่ใจ", "ความเห็นแก่ตัว"], ans: 0 }
+            ]
+        },
+"year2": {
+            "มหกายวิภาคศาสตร์": [
+                { q: "1. เส้นประสาทสมองคู่ใด (Cranial nerve) ที่รับความรู้สึกจากใบหน้า?", opts: ["Trigeminal nerve (V)", "Facial nerve (VII)", "Vagus nerve (X)", "Glossopharyngeal nerve (IX)"], ans: 0 },
+                { q: "2. กล้ามเนื้อที่ทำหน้าที่หลักในการหุบปาก (Elevation of mandible) คือ?", opts: ["Masseter", "Lateral pterygoid", "Digastric", "Geniohyoid"], ans: 0 },
+                { q: "3. ข้อต่อขากรรไกร (TMJ) เป็นข้อต่อชนิดใด?", opts: ["Hinge joint", "Pivot joint", "Synovial hinge-sliding joint", "Ball and socket joint"], ans: 2 },
+                { q: "4. หลอดเลือดที่เลี้ยงใบหน้าและช่องปากเป็นหลักคือ?", opts: ["Internal carotid artery", "External carotid artery", "Vertebral artery", "Basilar artery"], ans: 1 },
+                { q: "5. กล้ามเนื้อที่ดึงขากรรไกรล่างไปด้านหน้า (Protrusion) คือ?", opts: ["Lateral pterygoid", "Temporalis", "Masseter", "Medial pterygoid"], ans: 0 },
+                { q: "6. เส้นประสาทที่ส่งสัญญาณรับรสจากลิ้น 2/3 ส่วนหน้าคือ?", opts: ["Lingual nerve (branch of VII)", "Glossopharyngeal nerve", "Vagus nerve", "Hypoglossal nerve"], ans: 0 },
+                { q: "7. โครงสร้างใดที่เป็นจุดเกาะของกล้ามเนื้อที่พื้นปาก?", opts: ["Hyoid bone", "Zygomatic bone", "Maxilla", "Sphenoid bone"], ans: 0 },
+                { q: "8. ต่อมน้ำลายพาโรติด (Parotid gland) มีท่อไปเปิดที่บริเวณใด?", opts: ["ใต้ลิ้น", "ฟันกรามบนซี่ที่สอง", "เพดานแข็ง", "ริมฝีปากล่าง"], ans: 1 },
+                { q: "9. กล้ามเนื้อลิ้นส่วนใหญ่ถูกควบคุมโดยเส้นประสาทคู่ใด?", opts: ["Hypoglossal nerve (XII)", "Facial nerve", "Trigeminal nerve", "Accessory nerve"], ans: 0 },
+                { q: "10. เส้นประสาทใดที่ให้ความรู้สึกแก่ฟันกรามล่าง?", opts: ["Inferior alveolar nerve", "Infraorbital nerve", "Lingual nerve", "Buccal nerve"], ans: 0 }
+            ],
+            "ทันตกายวิภาคศาสตร์": [
+                { q: "1. ฟันกรามซี่แรกบน (Maxillary first molar) ปกติมีกี่ราก?", opts: ["2 ราก", "3 ราก", "4 ราก", "1 ราก"], ans: 1 },
+                { q: "2. สัญลักษณ์แทนฟันหน้าตัดซี่กลางบนขวาในระบบ FDI คือ?", opts: ["11", "21", "51", "81"], ans: 0 },
+                { q: "3. ลักษณะเด่นของฟันเขี้ยว (Canine) คือ?", opts: ["มีปุ่มเดียวและรากยาว", "มีหลายปุ่ม", "ไม่มีราก", "แบนเหมือนฟันหน้า"], ans: 0 },
+                { q: "4. Cusp of Carabelli มักพบในฟันซี่ใด?", opts: ["Maxillary first molar", "Mandibular first molar", "Maxillary second premolar", "Maxillary central incisor"], ans: 0 },
+                { q: "5. พื้นที่ระหว่างฟันสองซี่ที่ติดกันเรียกว่า?", opts: ["Interproximal space", "Occlusal surface", "Cingulum", "Fossa"], ans: 0 },
+                { q: "6. ปุ่มเล็กๆ ที่ขอบตัดของฟันหน้าในเด็กเรียกว่า?", opts: ["Mamelon", "Cusp", "Ridge", "Tubercle"], ans: 0 },
+                { q: "7. ส่วนที่นูนที่สุดของตัวฟันทางด้านลิ้นในฟันหน้าเรียกว่า?", opts: ["Cingulum", "Fossa", "Pit", "Groove"], ans: 0 },
+                { q: "8. ฟันกรามน้อย (Premolar) ซี่ที่สองล่าง มักมีกี่ Cusp?", opts: ["2 หรือ 3 Cusp", "4 Cusp", "1 Cusp", "5 Cusp"], ans: 0 },
+                { q: "9. รอยเว้าที่เป็นทางผ่านของอาหารบนตัวฟันเรียกว่า?", opts: ["Groove", "Cusp", "Ridge", "Root"], ans: 0 },
+                { q: "10. ความสัมพันธ์ของการสบฟันที่ถือว่าปกติคือ?", opts: ["Class I occlusion", "Class II occlusion", "Class III occlusion", "Crossbite"], ans: 0 }
+            ],
+            "สรีรวิทยา": [
+                { q: "1. การหลั่งน้ำลายถูกควบคุมโดยระบบประสาทใดเป็นหลัก?", opts: ["Autonomic nervous system", "Somatic nervous system", "Central nervous system", "Peripheral nervous system"], ans: 0 },
+                { q: "2. หน้าที่หลักของน้ำลายในช่องปากคือ?", opts: ["ช่วยย่อยแป้งและปรับ pH", "ช่วยในการมองเห็น", "สร้างเม็ดเลือด", "ย่อยโปรตีนรุนแรง"], ans: 0 },
+                { q: "3. ฮอร์โมนที่ควบคุมระดับแคลเซียมในเลือดคือ?", opts: ["Parathyroid hormone", "Insulin", "Thyroxine", "Adrenaline"], ans: 0 },
+                { q: "4. กระบวนการเคี้ยวอาหารเป็นการทำงานร่วมกันของ?", opts: ["กล้ามเนื้อและระบบประสาทสั่งการ", "ระบบย่อยอาหารเท่านั้น", "ลิ้นเท่านั้น", "ฟันเพียงอย่างเดียว"], ans: 0 },
+                { q: "5. ค่า pH ปกติในช่องปากที่ไม่ก่อให้เกิดฟันผุคือ?", opts: ["7.0 (เป็นกลาง)", "1.0", "4.0", "10.0"], ans: 0 },
+                { q: "6. การรับรส (Taste sensation) เกิดขึ้นที่ส่วนใดของลิ้น?", opts: ["Taste buds", "Salivary glands", "Enamel", "Dentin"], ans: 0 },
+                { q: "7. ความเจ็บปวดในฟันรับสัญญาณผ่านทางใด?", opts: ["Pulp nerve fibers", "Enamel", "Cementum", "Saliva"], ans: 0 },
+                { q: "8. การทำงานของต่อมน้ำลายในขณะพัก (Resting state) ให้ผลผลิตชนิดใด?", opts: ["Mucous (เมือก)", "Serous (ใส)", "เลือด", "หนอง"], ans: 0 },
+                { q: "9. ปฏิกิริยากลืน (Deglutition) เริ่มต้นที่ระยะใด?", opts: ["Voluntary phase", "Involuntary phase", "Gastric phase", "Colonic phase"], ans: 0 },
+                { q: "10. ระบบประสาท Sympathetic มีผลอย่างไรต่อน้ำลาย?", opts: ["ทำให้น้ำลายเหนียวและหลั่งน้อยลง", "ทำให้น้ำลายใสและหลั่งมาก", "ไม่มีผล", "ทำให้น้ำลายหายไป"], ans: 0 }
+            ],
+            "ชีวเคมีช่องปาก": [
+                { q: "1. ส่วนประกอบหลักของสารอนินทรีย์ในเคลือบฟันคือ?", opts: ["Hydroxyapatite", "Collagen", "Keratin", "Elastin"], ans: 0 },
+                { q: "2. โปรตีนชนิดหลักในเนื้อฟัน (Dentin) คือ?", opts: ["Collagen type I", "Collagen type IV", "Keratin", "Albumin"], ans: 0 },
+                { q: "3. ฟลูออไรด์ช่วยป้องกันฟันผุโดยการ?", opts: ["ทำให้ผลึกฟันแข็งแรงขึ้น", "ฆ่าเชื้อในปาก", "ทำให้ฟันขาว", "เพิ่มการหลั่งน้ำลาย"], ans: 0 },
+                { q: "4. เอนไซม์ใดในน้ำลายที่มีฤทธิ์ต้านเชื้อแบคทีเรีย?", opts: ["Lysozyme", "Amylase", "Lipase", "Protease"], ans: 0 },
+                { q: "5. น้ำตาลชนิดใดที่เป็นอาหารหลักของแบคทีเรียที่ทำให้เกิดฟันผุ?", opts: ["Sucrose", "Glucose", "Fructose", "Lactose"], ans: 0 },
+                { q: "6. การสะสมของหินปูน (Calculus) สัมพันธ์กับสิ่งใด?", opts: ["การสะสมของแร่ธาตุในคราบจุลินทรีย์", "การแปรงฟันสะอาด", "น้ำสะอาด", "การกินผัก"], ans: 0 },
+                { q: "7. สารประเภทโปรตีนที่พบในน้ำลายและช่วยเคลือบฟันคือ?", opts: ["Pellicle", "Enamel", "Dentin", "Cementum"], ans: 0 },
+                { q: "8. ภาวะฟันผุเกิดจากกรดที่ผลิตโดยเชื้อแบคทีเรียกลุ่มใด?", opts: ["Mutans streptococci", "Staphylococcus", "E. coli", "Bacillus"], ans: 0 },
+                { q: "9. แร่ธาตุชนิดใดสำคัญต่อการสร้างผลึกฟัน?", opts: ["Calcium และ Phosphate", "Iron", "Zinc", "Copper"], ans: 0 },
+                { q: "10. กระบวนการคืนแร่ธาตุให้ตัวฟันเรียกว่า?", opts: ["Remineralization", "Demineralization", "Erosion", "Abrasion"], ans: 0 }
+            ],
+            "วัสดุทันตกรรม 1": [
+                { q: "1. วัสดุที่ใช้ทำแบบจำลองฟันคือ?", opts: ["Dental plaster / Stone", "Amalgam", "Composite", "Ceramic"], ans: 0 },
+                { q: "2. วัสดุที่ใช้บูรณะฟันสีเหมือนฟันคือ?", opts: ["Composite resin", "Amalgam", "Gold", "Base metal"], ans: 0 },
+                { q: "3. สมบัติความแข็งแรงของวัสดุที่ทนต่อแรงกดเรียกว่า?", opts: ["Compressive strength", "Tensile strength", "Hardness", "Ductility"], ans: 0 },
+                { q: "4. วัสดุอมัลกัม (Amalgam) มีส่วนประกอบหลักของโลหะชนิดใด?", opts: ["Mercury (ปรอท)", "Gold", "Lead", "Iron"], ans: 0 },
+                { q: "5. การยึดติดของวัสดุกับฟันโดยอาศัยแรงทางเคมีเรียกว่า?", opts: ["Adhesion", "Cohesion", "Absorption", "Reflection"], ans: 0 },
+                { q: "6. วัสดุที่ใช้พิมพ์ปากเพื่อให้ได้แบบจำลองเรียกว่า?", opts: ["Impression material", "Restorative material", "Base material", "Cleaning material"], ans: 0 },
+                { q: "7. อัลจิเนต (Alginate) เป็นวัสดุพิมพ์ปากชนิดใด?", opts: ["Hydrocolloid", "Elastomer", "Wax", "Plaster"], ans: 0 },
+                { q: "8. อุณหภูมิมีผลต่อการแข็งตัวของวัสดุทางทันตกรรมอย่างไร?", opts: ["เพิ่มอุณหภูมิทำให้แข็งเร็วขึ้น", "ลดอุณหภูมิทำให้แข็งเร็วขึ้น", "ไม่มีผล", "ทำให้วัสดุละลาย"], ans: 0 },
+                { q: "9. ความคงทนต่อการขีดข่วนของวัสดุเรียกว่า?", opts: ["Hardness", "Elasticity", "Toughness", "Flow"], ans: 0 },
+                { q: "10. วัสดุที่ใช้ยึดฟันปลอมหรือครอบฟันเรียกว่า?", opts: ["Luting cement", "Restorative", "Impression", "Abrasive"], ans: 0 }
+            ]
+        },
+	"year3": {
+            "พยาธิวิทยาช่องปาก": [
+                { q: "1. รอยโรคที่เป็นจุดขาวหรือแผ่นขาวในช่องปากที่ไม่สามารถถูออกได้เรียกว่า?", opts: ["Leukoplakia", "Erythroplakia", "Lichen planus", "Candidiasis"], ans: 0 },
+                { q: "2. มะเร็งชนิดที่พบบ่อยที่สุดในช่องปากคือ?", opts: ["Squamous cell carcinoma", "Basal cell carcinoma", "Adenocarcinoma", "Melanoma"], ans: 0 },
+                { q: "3. อาการของโรค Lichen planus ในช่องปากมักมีลักษณะเป็น?", opts: ["Wickham striae (ลายเส้นสีขาวคล้ายตาข่าย)", "แผลพุพอง", "ตุ่มน้ำ", "ก้อนเนื้อ"], ans: 0 },
+                { q: "4. ถุงน้ำ (Cyst) ในช่องปากที่เกิดจากฟันผุและอักเสบที่ปลายรากคือ?", opts: ["Radicular cyst", "Dentigerous cyst", "Odontogenic keratocyst", "Nasopalatine duct cyst"], ans: 0 },
+                { q: "5. เนื้องอกที่มีองค์ประกอบของฟันหลายซี่ขนาดเล็กๆ คือ?", opts: ["Odontoma", "Ameloblastoma", "Fibroma", "Lipoma"], ans: 0 },
+                { q: "6. แผลร้อนใน (Apthous ulcer) มักเกิดบริเวณใด?", opts: ["เยื่อบุที่ไม่ยึดแน่น (Non-keratinized mucosa)", "เหงือก", "เพดานแข็ง", "หลังฟัน"], ans: 0 },
+                { q: "7. เนื้องอกที่มีความสามารถในการทำลายกระดูกสูงและพบบ่อยที่ขากรรไกรล่างคือ?", opts: ["Ameloblastoma", "Papilloma", "Osteoma", "Chondroma"], ans: 0 },
+                { q: "8. การติดเชื้อราในช่องปาก (Candidiasis) มักพบลักษณะ?", opts: ["ฝ้าขาวที่ถูออกได้และแดง", "ก้อนสีดำ", "จุดสีน้ำเงิน", "ตุ่มน้ำใส"], ans: 0 },
+                { q: "9. พยาธิสภาพของฟันผุ (Caries) เริ่มต้นจากการสูญเสียแร่ธาตุในส่วนใด?", opts: ["Enamel", "Pulp", "Periodontal ligament", "Bone"], ans: 0 },
+                { q: "10. รอยโรคที่เกิดจากฟันปลอมกดทับเหงือกเป็นเวลานานเรียกว่า?", opts: ["Epulis fissuratum", "Papilloma", "Fibroma", "Granuloma"], ans: 0 }
+            ],
+            "รังสีวิทยาช่องปาก": [
+                { q: "1. ภาพรังสีทันตกรรมแบบที่เห็นตัวฟันและกระดูกรอบๆ รายซี่เรียกว่า?", opts: ["Periapical film", "Panoramic film", "Cephalometric film", "Occlusal film"], ans: 0 },
+                { q: "2. ความเข้มข้นของรังสี (Radiodensity) ของฟันผุในภาพรังสีจะเป็นอย่างไร?", opts: ["Radiolucent (ดำกว่า)", "Radiopaque (ขาวกว่า)", "ไม่เปลี่ยนสี", "โปร่งแสง"], ans: 0 },
+                { q: "3. ภาพรังสี Panorex มีประโยชน์หลักในการ?", opts: ["เห็นภาพรวมขากรรไกรและฟันทั้งปาก", "ดูรายละเอียดปลายรากฟัน", "ดูการสบฟันหน้า", "ตรวจหามะเร็งปอด"], ans: 0 },
+                { q: "4. วัตถุที่มีความทึบรังสีสูงสุด (Radiopaque) คือ?", opts: ["วัสดุอุดฟันประเภทโลหะ", "ฟันผุ", "เหงือก", "ถุงน้ำ"], ans: 0 },
+                { q: "5. การป้องกันอันตรายจากรังสีสำหรับผู้ป่วยคือ?", opts: ["ใช้เสื้อตะกั่วและปลอกคอ", "ไม่ต้องทำอะไร", "ทำรังสีบ่อยๆ", "ใช้เสื้อผ้าปกติ"], ans: 0 },
+                { q: "6. ภาพรังสี Cephalometric นิยมใช้ในทางทันตกรรมแขนงใด?", opts: ["ทันตกรรมจัดฟัน", "ทันตกรรมประดิษฐ์", "ศัลยกรรมช่องปาก", "ปริทันตวิทยา"], ans: 0 },
+                { q: "7. เครื่องหมายเตือนการติดเชื้อที่ปลายรากฟันในภาพรังสีคือ?", opts: ["Periapical radiolucency", "Lamina dura", "Periodontal space", "Enamel"], ans: 0 },
+                { q: "8. การเกิดภาพซ้อนในฟันเนื่องจากการจัดฟันผิดตำแหน่งเรียกว่า?", opts: ["Overlap", "Elongation", "Foreshortening", "Distortion"], ans: 0 },
+                { q: "9. ในเด็ก ฟันแท้ที่ยังไม่ขึ้นจะเห็นเป็นอย่างไรในภาพรังสี?", opts: ["Radiolucent (เป็นช่อง)", "Radiopaque (ขาว)", "หายไป", "โปร่งแสง"], ans: 0 },
+                { q: "10. ระยะห่างของวัตถุกับฟิล์มมีผลอย่างไรต่อภาพรังสี?", opts: ["ยิ่งห่างยิ่งขยายใหญ่", "ยิ่งห่างยิ่งเล็ก", "ไม่มีผล", "ทำให้ภาพเบลอ"], ans: 0 }
+            ],
+            "ทันตกรรมประดิษฐ์": [
+                { q: "1. ฟันปลอมถอดได้ส่วนที่ทำจากอะคริลิกทำหน้าที่อะไร?", opts: ["ฐานฟันปลอม", "ยึดฟัน", "บดเคี้ยว", "รับแรง"], ans: 0 },
+                { q: "2. การพิมพ์ปากเพื่อทำฟันปลอมถอดได้ต้องใช้วัสดุใด?", opts: ["Alginate", "Composite", "Amalgam", "Ceramic"], ans: 0 },
+                { q: "3. ส่วนประกอบของฟันปลอมที่ทำหน้าที่ยึดกับฟันจริงคือ?", opts: ["Clasp (ตะขอ)", "Base", "Saddle", "Connector"], ans: 0 },
+                { q: "4. การบันทึกความสัมพันธ์ของการสบฟันเรียกว่า?", opts: ["Maxillomandibular record", "Impression", "Trial insertion", "Adjustment"], ans: 0 },
+                { q: "5. ประโยชน์ของฟันปลอมคือ?", opts: ["ช่วยการบดเคี้ยวและเพิ่มความมั่นใจ", "ป้องกันฟันผุ", "ทำให้ฟันยาวขึ้น", "ช่วยลดอาการปวดฟัน"], ans: 0 },
+                { q: "6. การลองฟันปลอมในปากก่อนเสร็จจริงเพื่อดูอะไร?", opts: ["ความสวยงามและการสบฟัน", "ความสะอาด", "ความแข็งแรง", "การย่อยอาหาร"], ans: 0 },
+                { q: "7. สารที่ใช้ทำครอบฟันที่แข็งแรงที่สุดคือ?", opts: ["Zirconia/Metal-ceramic", "Acrylic", "Wax", "Alginate"], ans: 0 },
+                { q: "8. ฟันปลอมที่ติดแน่นเรียกว่า?", opts: ["Fixed partial denture", "Removable denture", "Complete denture", "Night guard"], ans: 0 },
+                { q: "9. การเตรียมฟันเพื่อทำครอบฟันต้องลดเนื้อฟันออกเพื่ออะไร?", opts: ["เพื่อให้มีพื้นที่ใส่วัสดุครอบ", "เพื่อให้ฟันดูสวย", "เพื่อให้ฟันแข็งแรง", "เพื่อความสนุก"], ans: 0 },
+                { q: "10. ความสำคัญของการประเมินเหงือกก่อนทำฟันปลอมคือ?", opts: ["ป้องกันการอักเสบและแนบสนิท", "ประหยัดเวลา", "ลดค่าใช้จ่าย", "ให้ดูสวยงาม"], ans: 0 }
+            ],
+            "ปริทันตวิทยา": [
+                { q: "1. โรคเหงือกอักเสบ (Gingivitis) เกิดจาก?", opts: ["คราบจุลินทรีย์ (Plaque)", "ฟันผุ", "การดื่มน้ำ", "การออกกำลังกาย"], ans: 0 },
+                { q: "2. อาการหลักของโรคปริทันต์อักเสบคือ?", opts: ["เหงือกร่นและร่องเหงือกลึก", "ฟันขาว", "น้ำลายไหล", "หายใจลำบาก"], ans: 0 },
+                { q: "3. หินปูน (Calculus) คืออะไร?", opts: ["คราบจุลินทรีย์ที่แข็งตัว", "คราบอาหาร", "เนื้อฟัน", "น้ำลาย"], ans: 0 },
+                { q: "4. การขูดหินปูน (Scaling) มีวัตถุประสงค์เพื่อ?", opts: ["กำจัดแหล่งสะสมเชื้อโรค", "ให้ฟันขาว", "จัดฟัน", "อุดฟัน"], ans: 0 },
+                { q: "5. ฟันโยก (Mobility) เป็นอาการของโรคใด?", opts: ["ปริทันต์อักเสบเรื้อรัง", "ฟันผุ", "ร้อนใน", "ฟันเกิน"], ans: 0 },
+                { q: "6. อุปกรณ์ที่ช่วยทำความสะอาดร่องเหงือกคือ?", opts: ["ไหมขัดฟัน/แปรงซอกฟัน", "ไม้จิ้มฟัน", "มีด", "ส้อม"], ans: 0 },
+                { q: "7. การรักษาโรคปริทันต์ในระยะเริ่มต้นคือ?", opts: ["ขูดหินปูนและเกลารากฟัน", "ถอนฟัน", "จัดฟัน", "ทำครอบฟัน"], ans: 0 },
+                { q: "8. สัมพันธ์ของโรคเบาหวานกับโรคเหงือกคือ?", opts: ["ทำให้เหงือกอักเสบง่ายขึ้น", "ไม่มีผล", "ทำให้ฟันแข็งแรง", "ทำให้ฟันงอกเร็ว"], ans: 0 },
+                { q: "9. ร่องเหงือกที่ลึกเกินไปเรียกว่า?", opts: ["Periodontal pocket", "Crown", "Root", "Pulp"], ans: 0 },
+                { q: "10. การแปรงฟันที่ถูกวิธีควรแปรงในมุมเท่าใด?", opts: ["45 องศาเข้าหาเหงือก", "90 องศา", "0 องศา", "180 องศา"], ans: 0 }
+            ],
+            "เภสัชวิทยา": [
+                { q: "1. ยาชาที่นิยมใช้ในทางทันตกรรมคือ?", opts: ["Lidocaine", "Morphine", "Aspirin", "Paracetamol"], ans: 0 },
+                { q: "2. ยาแก้ปวดกลุ่ม NSAIDs (เช่น Ibuprofen) มีฤทธิ์?", opts: ["ลดปวดและลดการอักเสบ", "แก้ง่วง", "ทำให้หลับ", "แก้แพ้"], ans: 0 },
+                { q: "3. ยาปฏิชีวนะที่นิยมใช้แก้ปวดบวมจากฟันคือ?", opts: ["Amoxicillin", "Paracetamol", "Aspirin", "Vitamin C"], ans: 0 },
+                { q: "4. ยาชาที่มีส่วนผสมของ Epinephrine ช่วยอะไร?", opts: ["ลดเลือดออกและทำให้ยาชาออกฤทธิ์นาน", "ทำให้คนไข้ตื่นตัว", "แก้ปวด", "เพิ่มการกิน"], ans: 0 },
+                { q: "5. หากคนไข้แพ้ยา Penicillin ควรใช้ยาใดทดแทน?", opts: ["Erythromycin / Clindamycin", "Amoxicillin", "Aspirin", "Paracetamol"], ans: 0 },
+                { q: "6. ยาแก้ปวดที่ปลอดภัยที่สุดสำหรับคนไข้โรคกระเพาะคือ?", opts: ["Paracetamol", "Ibuprofen", "Aspirin", "Diclofenac"], ans: 0 },
+                { q: "7. การฉีดยาชาเข้าในเส้นเลือดโดยไม่ตั้งใจส่งผลอย่างไร?", opts: ["หัวใจเต้นผิดจังหวะและชัก", "ฟันหายปวด", "ปากชา", "ตาพร่า"], ans: 0 },
+                { q: "8. ยาลดบวมที่นิยมในทันตกรรมคือ?", opts: ["Steroids (ในกรณีจำกัด)", "Antibiotics", "Aspirin", "Vitamin C"], ans: 0 },
+                { q: "9. ยาที่ต้องระวังในการใช้ร่วมกับยาชาคือ?", opts: ["ยาแก้ความดันสูงบางชนิด", "วิตามิน", "น้ำเปล่า", "ผลไม้"], ans: 0 },
+                { q: "10. ขนาดยาที่สูงเกินไปเรียกว่า?", opts: ["Overdose", "Underdose", "Normal dose", "Therapeutic dose"], ans: 0 }
+            ],
+            "ทันตกรรมหัตถการ": [
+                { q: "1. การอุดฟันด้วย Composite resin ต้องใช้สิ่งใดในการทำให้วัสดุแข็งตัว?", opts: ["แสงสีฟ้า (Curing light)", "ความร้อน", "น้ำ", "อากาศ"], ans: 0 },
+                { q: "2. ขั้นตอนการเตรียมโพรงฟันก่อนอุดฟันเรียกว่า?", opts: ["Cavity preparation", "Restoration", "Polishing", "Impression"], ans: 0 },
+                { q: "3. วัสดุที่นิยมใช้บูรณะฟันที่รับแรงบดเคี้ยวสูงคือ?", opts: ["Amalgam / Composite", "Wax", "Acrylic", "Plaster"], ans: 0 },
+                { q: "4. การกัดกร่อนของเคลือบฟันจากกรดเรียกว่า?", opts: ["Erosion", "Abrasion", "Attrition", "Caries"], ans: 0 },
+                { q: "5. การกรอฟันที่เกิดจากการแปรงฟันผิดวิธีเรียกว่า?", opts: ["Abrasion", "Erosion", "Caries", "Fracture"], ans: 0 },
+                { q: "6. วัสดุที่ใช้เคลือบหลุมร่องฟันป้องกันฟันผุคือ?", opts: ["Sealant", "Amalgam", "Gold", "Ceramic"], ans: 0 },
+                { q: "7. ความสำคัญของการขัดแต่งวัสดุอุดฟันคือ?", opts: ["ลดการสะสมของคราบจุลินทรีย์", "เพิ่มความสวยงาม", "ทำให้ฟันยาว", "ไม่มีผล"], ans: 0 },
+                { q: "8. การใช้ตัวยึดติด (Bonding agent) มีวัตถุประสงค์เพื่อ?", opts: ["ยึดวัสดุอุดกับเนื้อฟัน", "อุดฟัน", "ขัดฟัน", "ทำครอบฟัน"], ans: 0 },
+                { q: "9. อาการเสียวฟันหลังอุดฟันใหม่ๆ มักเกิดจาก?", opts: ["การปรับตัวของเนื้อเยื่อในฟัน", "วัสดุรั่ว", "วัสดุไม่ดี", "ฟันผุเพิ่ม"], ans: 0 },
+                { q: "10. เครื่องมือที่ใช้กำจัดเนื้อฟันที่ผุคือ?", opts: ["Bur (หัวกรอ)", "Spoon excavator", "Forceps", "Elevator"], ans: 0 }
+            ]
+        },
+	"year4": {
+            "คลินิกทันตกรรมหัตถการ": [
+                { q: "1. การประเมินความลึกของโพรงฟันผุต้องระวังการทะลุเข้าสู่ส่วนใด?", opts: ["Pulp chamber (โพรงประสาทฟัน)", "Enamel", "Cementum", "Periodontal ligament"], ans: 0 },
+                { q: "2. ข้อบ่งชี้ของการอุดฟันด้วย Amalgam คือ?", opts: ["ฟันกรามที่รับแรงบดเคี้ยวสูงและควบคุมความชื้นไม่ได้", "ฟันหน้า", "รอยผุขนาดเล็กมาก", "ต้องการความสวยงามสูง"], ans: 0 },
+                { q: "3. อาการเสียวฟันหลังอุดฟันใหม่ๆ นานเกิน 2 สัปดาห์ บ่งบอกถึงภาวะใด?", opts: ["Pulpitis (เนื้อเยื่อในฟันอักเสบ)", "วัสดุรั่ว", "ปกติ", "วัสดุเกิน"], ans: 0 },
+                { q: "4. วัสดุ Composite resin ที่ดีต้องมีสมบัติอย่างไร?", opts: ["ทนแรงบดเคี้ยวและมีความสวยงาม", "ละลายน้ำได้", "ไม่ยึดติดกับเนื้อฟัน", "กร่อนง่าย"], ans: 0 },
+                { q: "5. การใช้ Rubber dam ในการอุดฟันมีประโยชน์อย่างไร?", opts: ["ป้องกันการปนเปื้อนน้ำลาย", "ประหยัดเวลา", "ทำให้ฟันสวย", "ป้องกันฟันผุ"], ans: 0 },
+                { q: "6. การกรอฟันเพื่อเตรียมโพรงฟัน (Cavity prep) ต้องยึดหลักการใด?", opts: ["Extension for prevention", "ทำไปเรื่อยๆ", "กรอให้กว้างที่สุด", "เน้นความสวยงามอย่างเดียว"], ans: 0 },
+                { q: "7. วัสดุรองพื้น (Liner) ที่นิยมใช้เพื่อปกป้องโพรงประสาทฟันคือ?", opts: ["Calcium hydroxide", "Wax", "Plaster", "Alginate"], ans: 0 },
+                { q: "8. การทำ Sandwich technique ในการอุดฟันประกอบด้วยวัสดุอะไร?", opts: ["Glass ionomer และ Composite", "Amalgam และ Gold", "Wax และ Alginate", "Ceramic และ Gold"], ans: 0 },
+                { q: "9. สาเหตุหลักของวัสดุอุดฟันหลุดคือ?", opts: ["การเตรียมโพรงฟันไม่เหมาะสม", "วัสดุไม่ดี", "ฟันผุเพิ่ม", "กินอาหารปกติ"], ans: 0 },
+                { q: "10. เครื่องมือที่ใช้ตรวจสอบรอยผุคือ?", opts: ["Dental explorer", "Forceps", "Elevator", "Retractor"], ans: 0 }
+            ],
+            "คลินิกศัลยศาสตร์ช่องปาก 1": [
+                { q: "1. ก่อนถอนฟันสิ่งสำคัญที่สุดที่ต้องทำคือ?", opts: ["ประวัติทางการแพทย์ (Medical history)", "การถ่ายรูป", "การให้รางวัล", "การคุยเรื่องราคา"], ans: 0 },
+                { q: "2. เครื่องมือที่ใช้ในการถอนฟันเรียกว่า?", opts: ["Forceps", "Elevator", "Spoon excavator", "Bur"], ans: 0 },
+                { q: "3. ภาวะแทรกซ้อนที่พบบ่อยหลังถอนฟันคือ?", opts: ["เลือดออกมาก (Post-op bleeding)", "ฟันงอกใหม่", "กระดูกหัก", "ไข้หวัด"], ans: 0 },
+                { q: "4. การดมยาสลบเฉพาะที่ (Local anesthesia) ออกฤทธิ์โดย?", opts: ["ยับยั้งการส่งกระแสประสาท", "ทำให้หลับ", "ทำให้กล้ามเนื้อคลาย", "แก้ปวดในเลือด"], ans: 0 },
+                { q: "5. หลังถอนฟันควรแนะนำคนไข้อย่างไร?", opts: ["กัดผ้าก๊อซให้แน่นและงดบ้วนน้ำลาย", "แปรงฟันแรงๆ", "บ้วนน้ำลายบ่อยๆ", "ออกกำลังกาย"], ans: 0 },
+                { q: "6. กระดูกรอบเบ้าฟันที่แหลมคมหลังถอนฟันเรียกว่า?", opts: ["Bone spicule", "Cyst", "Tumor", "Calculus"], ans: 0 },
+                { q: "7. การผ่าฟันคุด (Impacted tooth) มีข้อบ่งชี้เมื่อใด?", opts: ["เมื่อฟันคุดก่อให้เกิดปัญหา/การอักเสบ", "เมื่อต้องการโชว์", "เมื่อเหงือกอักเสบ", "เมื่อฟันซี่อื่นผุ"], ans: 0 },
+                { q: "8. ข้อห้ามในการถอนฟันคือ?", opts: ["ผู้ป่วยที่ได้รับยาต้านการแข็งตัวของเลือดโดยไม่ได้ปรึกษาแพทย์", "ฟันผุ", "ฟันโยก", "ฟันเกิน"], ans: 0 },
+                { q: "9. อุปกรณ์ที่ใช้แยกเหงือกออกจากฟันก่อนถอนคือ?", opts: ["Elevator", "Forceps", "Mirror", "Tweezers"], ans: 0 },
+                { q: "10. การจัดการเบ้าฟันหลังถอนฟันในผู้ป่วยที่กินยาต้านการแข็งตัวของเลือดคือ?", opts: ["เย็บแผลและกดผ้าก๊อซแน่นๆ", "ไม่ทำอะไรเลย", "ให้ยาเพิ่ม", "ปล่อยให้เลือดไหล"], ans: 0 }
+            ],
+            "การวินิจฉัยโรคช่องปาก": [
+                { q: "1. ลำดับขั้นการวินิจฉัยโรคคือ?", opts: ["ประวัติ, ตรวจร่างกาย, ส่งตรวจพิเศษ, สรุปผล", "สรุปผลเลย", "ดูรูปถ่าย", "ถามญาติ"], ans: 0 },
+                { q: "2. คำว่า 'Palpation' ในการตรวจร่างกายคือ?", opts: ["การคลำ", "การดู", "การเคาะ", "การฟัง"], ans: 0 },
+                { q: "3. แผลในช่องปากที่สงสัยมะเร็งต้องทำอย่างไร?", opts: ["ตัดชิ้นเนื้อส่งตรวจ (Biopsy)", "สังเกตการณ์", "ให้ยาแก้ปวด", "ถอนฟัน"], ans: 0 },
+                { q: "4. อาการแสดงที่สำคัญของโรคในช่องปากที่ส่งผลทั่วร่างกายคือ?", opts: ["ไข้สูงร่วมกับเหงือกอักเสบรุนแรง", "เหงือกซีด", "ฟันเหลือง", "ลิ้นเป็นฝ้า"], ans: 0 },
+                { q: "5. การถ่ายภาพทางรังสีมีประโยชน์อย่างไรต่อการวินิจฉัย?", opts: ["เห็นรอยโรคที่มองไม่เห็นด้วยตาเปล่า", "ให้ฟันขาว", "รักษาฟันผุ", "ช่วยจัดฟัน"], ans: 0 },
+                { q: "6. ต่อมน้ำเหลืองที่คอโต บ่งบอกถึง?", opts: ["การอักเสบหรือการแพร่กระจายของมะเร็ง", "ไข้หวัด", "ตาสั้น", "ฟันผุ"], ans: 0 },
+                { q: "7. การส่งปรึกษาแพทย์ (Medical referral) ในผู้ป่วยที่มีโรคประจำตัวสำคัญเพราะ?", opts: ["เพื่อความปลอดภัยและการวางแผนรักษา", "เพื่อประหยัดเวลา", "เพื่อให้ดูน่าเชื่อถือ", "เพื่อลดคิว"], ans: 0 },
+                { q: "8. การตรวจช่องปากต้องตรวจทุกส่วนเพราะ?", opts: ["ป้องกันการพลาดรอยโรคที่ซ่อนอยู่", "เพื่อให้เสียเวลา", "ทำตามคิว", "เพื่อความสนุก"], ans: 0 },
+                { q: "9. สิ่งที่ต้องบันทึกในเวชระเบียนเกี่ยวกับการวินิจฉัยคือ?", opts: ["บันทึกให้ละเอียดครบถ้วนทุกประเด็น", "บันทึกแค่ชื่อโรค", "บันทึกแค่ชื่อคนไข้", "ไม่จำเป็นต้องบันทึก"], ans: 0 },
+                { q: "10. สีของเนื้อเยื่อในช่องปากที่ถือว่าปกติคือ?", opts: ["ชมพูอ่อน (Coral pink)", "แดงเข้ม", "ขาว", "ม่วง"], ans: 0 }
+            ],
+            "ทันตกรรมป้องกันและทันตกรรมชุมชน": [
+                { q: "1. การทำทันตกรรมป้องกันในชุมชนเน้นที่?", opts: ["การให้ความรู้และสร้างพฤติกรรมสุขภาพ", "การถอนฟันทุกคน", "การอุดฟันให้ครบ", "การจัดฟัน"], ans: 0 },
+                { q: "2. ฟลูออไรด์ในน้ำประปามีผลอย่างไรต่อฟัน?", opts: ["ป้องกันฟันผุ", "ทำให้ฟันยาว", "ทำลายฟัน", "ไม่มีผล"], ans: 0 },
+                { q: "3. ตัวชี้วัดระดับความรุนแรงของฟันผุในประชากรคือ?", opts: ["DMFT index", "จำนวนประชากร", "รายได้", "จำนวนร้านค้า"], ans: 0 },
+                { q: "4. การแปรงฟันร่วมกับการใช้ไหมขัดฟันลดความเสี่ยงอะไร?", opts: ["ฟันผุและโรคเหงือก", "ตาสั้น", "หัวใจ", "หอบหืด"], ans: 0 },
+                { q: "5. ความสำคัญของการให้ความรู้เรื่องอาหารในเด็กคือ?", opts: ["ลดความเสี่ยงฟันผุจากการกินหวาน", "ทำให้อ้วน", "ให้เด็กกินเก่งขึ้น", "ไม่มีประโยชน์"], ans: 0 },
+                { q: "6. การเคลือบหลุมร่องฟัน (Sealant) เหมาะกับฟันซี่ใด?", opts: ["ฟันกรามที่มีร่องลึก", "ฟันหน้า", "ฟันน้ำนมหน้า", "ฟันคุด"], ans: 0 },
+                { q: "7. บทบาทของทันตแพทย์ในชุมชนคือ?", opts: ["ผู้นำทางสุขภาพและวิชาการ", "ผู้รักษาอย่างเดียว", "ผู้จัดฟัน", "ผู้ทำฟันปลอม"], ans: 0 },
+                { q: "8. การสำรวจสภาวะทันตสุขภาพในชุมชนช่วยอะไร?", opts: ["วางแผนแก้ปัญหาได้ตรงจุด", "เสียเวลา", "เก็บข้อมูลเล่น", "ทำให้คนในชุมชนโกรธ"], ans: 0 },
+                { q: "9. ทำไมต้องรณรงค์การลดน้ำตาลในเด็ก?", opts: ["ลดโอกาสการเกิดฟันผุ", "ประหยัดเงิน", "เพิ่มยอดขายอาหาร", "ทำตามกระแส"], ans: 0 },
+                { q: "10. นโยบายส่งเสริมสุขภาพช่องปากที่ดีควรมี?", opts: ["การเข้าถึงบริการและการป้องกันอย่างทั่วถึง", "แค่การรักษา", "แค่การให้คำแนะนำ", "ไม่มีนโยบาย"], ans: 0 }
+            ],
+            "อายุรศาสตร์ช่องปาก": [
+                { q: "1. ผู้ป่วยที่มีเลือดออกง่ายผิดปกติ ควรระวังภาวะใด?", opts: ["การแข็งตัวของเลือดบกพร่อง (Coagulopathy)", "ไข้หวัด", "ตาอักเสบ", "ฟันผุ"], ans: 0 },
+                { q: "2. การดูแลผู้ป่วยโรคหัวใจก่อนทำฟันสำคัญอย่างไร?", opts: ["ป้องกันภาวะติดเชื้อในหัวใจ (Infective endocarditis)", "ให้ดูดี", "เพื่อเก็บข้อมูล", "ทำตามคิว"], ans: 0 },
+                { q: "3. ภาวะปากแห้ง (Xerostomia) ในผู้ป่วยส่งผลอย่างไร?", opts: ["เสี่ยงฟันผุและอักเสบสูง", "พูดเก่งขึ้น", "กินได้มากขึ้น", "ไม่มีผล"], ans: 0 },
+                { q: "4. ผู้ป่วยเบาหวานที่มีค่าน้ำตาลสูง เสี่ยงต่อภาวะใดในการรักษาฟัน?", opts: ["ติดเชื้อง่ายและแผลหายช้า", "ฟันแข็งแรงขึ้น", "ฟันผุลดลง", "ไม่มีผล"], ans: 0 },
+                { q: "5. การดูแลช่องปากในผู้ป่วยมะเร็งที่ได้รับรังสีคือ?", opts: ["ป้องกันฟันผุจากภาวะปากแห้ง", "ถอนฟันทุกซี่", "ไม่ต้องทำอะไร", "ให้ทำฟันตามปกติ"], ans: 0 },
+                { q: "6. โรคทางระบบที่ส่งผลต่อช่องปาก เช่น?", opts: ["เบาหวาน, โรคเลือด, โรคหัวใจ", "ตาสั้น, ขาหัก", "ไข้หวัด", "หูตึง"], ans: 0 },
+                { q: "7. ผู้ป่วยรับยาต้านเกล็ดเลือด (Aspirin) ควรทำอย่างไรก่อนถอนฟัน?", opts: ["ปรึกษาแพทย์เจ้าของไข้", "หยุดยาเองเลย", "ไม่ต้องทำอะไร", "เปลี่ยนมาฉีดแทน"], ans: 0 },
+                { q: "8. อาการแสบร้อนในช่องปาก (Burning mouth syndrome) มักพบใน?", opts: ["วัยกลางคนขึ้นไป", "ทารก", "เด็กเล็ก", "วัยรุ่น"], ans: 0 },
+                { q: "9. ความสำคัญของการซักประวัติการแพ้ยาคือ?", opts: ["ป้องกันภาวะแพ้รุนแรง (Anaphylaxis)", "เพื่อให้ข้อมูลครบ", "ทำตามระเบียบ", "เพื่อความสนุก"], ans: 0 },
+                { q: "10. การจัดการผู้ป่วยวิตกกังวลในการทำฟันคือ?", opts: ["การสื่อสารและการให้ข้อมูลที่ชัดเจน", "การบังคับ", "การไม่สนใจ", "การตะคอก"], ans: 0 }
+            ]
+        },
+	"year5": {
+            "คลินิกศัลยศาสตร์ช่องปาก 2": [
+                { q: "1. การผ่าฟันคุดในตำแหน่งที่ใกล้กับเส้นประสาท Inferior Alveolar Nerve ต้องระวังอะไร?", opts: ["ภาวะชาที่ริมฝีปากล่างถาวร", "ฟันซี่ข้างเคียงผุ", "เลือดออกง่าย", "ติดเชื้อ"], ans: 0 },
+                { q: "2. สาเหตุของภาวะเบ้าฟันแห้ง (Dry Socket) หลังถอนฟันคือ?", opts: ["การละลายของลิ่มเลือด (Dislodgement of blood clot)", "กินอาหารเผ็ด", "แปรงฟันเร็วไป", "ไม่ได้กินยา"], ans: 0 },
+                { q: "3. การผ่าตัดนำชิ้นเนื้อ (Biopsy) ในกรณีที่สงสัยมะเร็งต้องทำอย่างไร?", opts: ["ตัดชิ้นเนื้อที่มีรอยโรคและเนื้อเยื่อปกติบางส่วน", "ตัดเฉพาะส่วนสีขาว", "ไม่ต้องตัด", "จี้ด้วยไฟฟ้า"], ans: 0 },
+                { q: "4. ภาวะขากรรไกรค้าง (TMJ dislocation) การจัดกระดูกเข้าที่ควรทำอย่างไร?", opts: ["ดันขากรรไกรล่างลงและถอยไปด้านหลัง", "ดึงขึ้น", "หมุนซ้ายขวา", "ไม่ต้องทำ"], ans: 0 },
+                { q: "5. การผ่าตัดถุงน้ำในขากรรไกรขนาดใหญ่เสี่ยงต่อภาวะใด?", opts: ["ขากรรไกรหัก (Pathologic fracture)", "ฟันงอกเร็ว", "น้ำลายไหล", "หายใจลำบาก"], ans: 0 },
+                { q: "6. ลำดับการใช้ยาชาเพื่อระงับความรู้สึกในกรณีศัลยกรรมช่องปากต้องคำนึงถึง?", opts: ["ปริมาณยาชาสูงสุดต่อน้ำหนักตัว (Maximum dose)", "ความสวยงาม", "ชื่อยา", "ยี่ห้อยา"], ans: 0 },
+                { q: "7. วัสดุที่ใช้ปิดแผลในกรณีที่มีรูทะลุไซนัสหลังถอนฟันบนคือ?", opts: ["Gelfoam/Surgical flap", "Wax", "Alginate", "Plaster"], ans: 0 },
+                { q: "8. การผ่าตัดแต่งกระดูกเบ้าฟัน (Alveoloplasty) ทำเพื่อ?", opts: ["เตรียมสันกระดูกให้เรียบสำหรับใส่ฟันปลอม", "จัดฟัน", "แก้ฟันผุ", "ทำให้คนไข้ปวด"], ans: 0 },
+                { q: "9. อุปกรณ์ที่ใช้กรอกระดูกคือ?", opts: ["Surgical bur", "Forceps", "Mirror", "Tweezers"], ans: 0 },
+                { q: "10. หากมีเลือดออกมากหลังผ่าตัด สิ่งที่ควรทำคือ?", opts: ["กดแผลและตรวจสอบสาเหตุ", "เย็บแผลใหม่", "ให้ยาแก้ปวด", "ให้กลับบ้าน"], ans: 0 }
+            ],
+            "ทันตกรรมสำหรับเด็ก": [
+                { q: "1. ฟันน้ำนมซี่แรกที่ขึ้นในปากคือฟันอะไร?", opts: ["ฟันหน้าล่าง", "ฟันกราม", "ฟันเขี้ยว", "ฟันหน้าบน"], ans: 0 },
+                { q: "2. การทำครอบฟันในฟันน้ำนมที่ผุรุนแรงใช้ครอบประเภทใด?", opts: ["Stainless steel crown", "Gold crown", "Zirconia", "Acrylic"], ans: 0 },
+                { q: "3. ภาวะฟันผุในเด็กเล็กจำนวนมากจากการดูดนมขวดคือ?", opts: ["Nursing bottle caries", "ทั่วไป", "ฟันผุจากกรรมพันธุ์", "จากยาสีฟัน"], ans: 0 },
+                { q: "4. การทำครอบฟันน้ำนมหลังการรักษารากฟันช่วยอะไร?", opts: ["ป้องกันฟันแตกและคงที่ว่าง", "ความสวยงาม", "ประหยัดเวลา", "ลดการกิน"], ans: 0 },
+                { q: "5. พฤติกรรมที่เด็กกลัวหมอฟันควรจัดการอย่างไร?", opts: ["ใช้เทคนิคเบี่ยงเบนความสนใจ (Tell-Show-Do)", "ตะคอก", "มัดตัว", "ไม่สนใจ"], ans: 0 },
+                { q: "6. การใช้ฟลูออไรด์วานิชในเด็กทำเพื่อ?", opts: ["เพิ่มความแข็งแรงของผิวฟันและยับยั้งฟันผุ", "ทำฟันขาว", "รักษาเหงือก", "ลดฟันเกิน"], ans: 0 },
+                { q: "7. การรักษาทางเลือกหากฟันกรามน้ำนมตายคือ?", opts: ["Pulpectomy (รักษารากฟันน้ำนม)", "ถอนฟัน", "อุดฟัน", "ทำครอบฟัน"], ans: 0 },
+                { q: "8. การทำเครื่องมือกันฟันเคลื่อน (Space maintainer) สำคัญอย่างไร?", opts: ["ป้องกันฟันซ้อนเกเมื่อฟันน้ำนมหลุดก่อนกำหนด", "ความสวยงาม", "เพิ่มการบดเคี้ยว", "ลดฟันผุ"], ans: 0 },
+                { q: "9. ปริมาณยาสีฟันผสมฟลูออไรด์สำหรับเด็กต่ำกว่า 3 ปีคือ?", opts: ["แตะขนแปรง", "เท่าเมล็ดถั่ว", "เต็มแปรง", "ไม่ต้องใช้"], ans: 0 },
+                { q: "10. โรคเหงือกในเด็กมักสัมพันธ์กับอะไร?", opts: ["สุขอนามัยในช่องปาก", "การจัดฟัน", "โรคตับ", "ยาแก้ไอ"], ans: 0 }
+            ],
+            "ศัลยกรรมปริทันต์": [
+                { q: "1. การผ่าตัดเพิ่มความยาวของตัวฟัน (Crown lengthening) ทำเพื่อ?", opts: ["มีพื้นที่สำหรับครอบฟัน", "จัดฟัน", "เพิ่มความสวยงาม", "ลดเหงือก"], ans: 0 },
+                { q: "2. การผ่าตัดเหงือกเพื่อแก้ปัญหาเหงือกร่นคือ?", opts: ["Gingival graft", "Scaling", "Extraction", "Root canal"], ans: 0 },
+                { q: "3. วัสดุที่ใช้ปิดแผลหลังผ่าตัดเหงือกคือ?", opts: ["Periodontal dressing", "Wax", "Alginate", "Amalgam"], ans: 0 },
+                { q: "4. การทำ Gingivectomy คือ?", opts: ["การตัดเหงือกส่วนเกิน", "การตัดฟัน", "การรักษาราก", "การถอน"], ans: 0 },
+                { q: "5. ข้อบ่งชี้ของการผ่าตัดปริทันต์คือ?", opts: ["ร่องเหงือกลึกที่ขูดหินปูนไม่ถึง", "ฟันขาว", "ฟันผุ", "ฟันเกิน"], ans: 0 },
+                { q: "6. การปลูกกระดูก (Bone graft) ทำในกรณีใด?", opts: ["กระดูกเบ้าฟันละลาย", "ฟันผุ", "ตาทน", "หูตึง"], ans: 0 },
+                { q: "7. อาการหลังผ่าตัดปริทันต์ที่ปกติคือ?", opts: ["เสียวฟันและเหงือกบวมเล็กน้อย", "ปวดรุนแรงตลอดเวลา", "เลือดไหลไม่หยุด", "ไข้สูง"], ans: 0 },
+                { q: "8. เทคนิคการเย็บแผลในศัลยกรรมปริทันต์ต้อง?", opts: ["ให้แผลแนบสนิท", "ให้แผลเปิด", "ใช้ลวด", "ไม่เย็บ"], ans: 0 },
+                { q: "9. ภาวะแทรกซ้อนที่รุนแรงน้อยแต่พบได้คือ?", opts: ["ความรู้สึกไวต่อความเย็น", "ฟันหลุด", "กระดูกหัก", "น้ำลายไม่ไหล"], ans: 0 },
+                { q: "10. ความสะอาดหลังผ่าตัดปริทันต์ทำได้โดย?", opts: ["แปรงฟันเบาๆ และใช้น้ำยาบ้วนปาก", "หยุดแปรงฟัน", "เคี้ยวหมากฝรั่ง", "กินน้ำแข็ง"], ans: 0 }
+            ],
+            "ทันตกรรมจัดฟัน": [
+                { q: "1. เครื่องมือจัดฟันประกอบด้วยอะไรหลักๆ?", opts: ["Bracket, Wire, Band", "ฟันปลอม", "ครอบฟัน", "วัสดุอุด"], ans: 0 },
+                { q: "2. ฟันซ้อนเกเกิดจาก?", opts: ["พื้นที่ขากรรไกรไม่พอ", "แปรงฟัน", "กินน้ำ", "ตาสั้น"], ans: 0 },
+                { q: "3. การจัดฟันทำงานโดยหลักการใด?", opts: ["แรงที่ทำต่อตัวฟันเพื่อปรับตำแหน่งกระดูกและฟัน", "การทำให้ฟันผุ", "การดึงฟัน", "การอุดฟัน"], ans: 0 },
+                { q: "4. Retention period คือช่วงเวลาที่?", opts: ["ใส่เครื่องมือคงสภาพฟัน", "จัดฟัน", "ถอนฟัน", "อุดฟัน"], ans: 0 },
+                { q: "5. การจัดฟันแบบใส (Clear aligners) ต่างจากเหล็กดัดอย่างไร?", opts: ["ถอดได้และมีความสวยงาม", "เจ็บกว่า", "แข็งแรงกว่า", "ไม่มีผล"], ans: 0 },
+                { q: "6. โรคเหงือกเป็นอุปสรรคต่อการจัดฟันอย่างไร?", opts: ["ทำให้รากฟันละลายง่าย", "ทำให้ฟันยาว", "ทำให้ฟันขาว", "ไม่มีผล"], ans: 0 },
+                { q: "7. อุปกรณ์จัดฟันที่ใช้ขยายขากรรไกรคือ?", opts: ["Expander", "Bracket", "Wire", "Band"], ans: 0 },
+                { q: "8. ฟันยื่น (Protrusion) จัดฟันเพื่อ?", opts: ["ดึงฟันให้เข้าที่", "ทำให้ฟันผุ", "ลดการกิน", "ไม่มีผล"], ans: 0 },
+                { q: "9. วัยที่เหมาะสมในการเริ่มจัดฟันคือ?", opts: ["เมื่อฟันแท้ขึ้นเกือบครบ", "ทารก", "คนแก่", "ไม่มีวัยที่เหมาะสม"], ans: 0 },
+                { q: "10. อาหารที่ควรหลีกเลี่ยงขณะจัดฟันคือ?", opts: ["ของแข็งและเหนียว", "ผลไม้", "ผัก", "น้ำเปล่า"], ans: 0 }
+            ],
+            "รักษารากฟัน": [
+                { q: "1. การรักษารากฟัน (Root canal) ทำเพื่อ?", opts: ["เก็บรักษาฟันที่เป็นโรคโพรงประสาทฟัน", "ถอนฟัน", "ทำฟันปลอม", "จัดฟัน"], ans: 0 },
+                { q: "2. สาเหตุที่ทำให้ประสาทฟันตายคือ?", opts: ["ฟันผุทะลุโพรงประสาท", "การแปรงฟัน", "น้ำ", "ฟันขาว"], ans: 0 },
+                { q: "3. วัสดุที่ใช้ปิดคลองรากฟันคือ?", opts: ["Gutta percha", "Amalgam", "Composite", "Ceramic"], ans: 0 },
+                { q: "4. การทำความสะอาดคลองรากฟันใช้เครื่องมือใด?", opts: ["File", "Bur", "Mirror", "Tweezers"], ans: 0 },
+                { q: "5. น้ำยาที่ใช้ล้างคลองรากฟันคือ?", opts: ["Sodium hypochlorite", "น้ำเปล่า", "แอลกอฮอล์", "ยาชา"], ans: 0 },
+                { q: "6. ขั้นตอนก่อนเริ่มรักษารากฟันคือ?", opts: ["การถ่ายภาพรังสี", "การถอน", "การทำฟันปลอม", "การจัดฟัน"], ans: 0 },
+                { q: "7. อาการปกติหลังรักษารากฟันคือ?", opts: ["ตึงๆ หรือเจ็บเล็กน้อยเมื่อเคี้ยว", "ปวดจนนอนไม่ได้", "มีหนองไหล", "ฟันโยก"], ans: 0 },
+                { q: "8. หลังจากรักษารากฟันเสร็จ ฟันมักจะ?", opts: ["เปราะกว่าปกติ (ควรทำครอบ)", "แข็งแรงกว่าเดิม", "ฟันผุมากขึ้น", "หายไป"], ans: 0 },
+                { q: "9. การทำรักษารากฟันหลายคลองจำเป็นต้อง?", opts: ["หาตำแหน่งคลองรากฟันให้ครบ", "เจาะไปเรื่อยๆ", "ปิดทับทันที", "ไม่ต้องทำอะไร"], ans: 0 },
+                { q: "10. ผลสำเร็จของการรักษารากฟันดูจาก?", opts: ["อาการคนไข้และภาพรังสี", "ความสวยงาม", "ความเร็ว", "ความรู้สึกหมอ"], ans: 0 }
+            ]
+        },
+	"year6": {
+            "หลักมูลวิทยาทันตกรรมรากเทียม": [
+                { q: "1. ข้อบ่งชี้หลักของการใส่รากเทียม (Dental Implant) คือ?", opts: ["ทดแทนฟันที่สูญเสียไปโดยไม่ต้องกรอฟันข้างเคียง", "จัดฟัน", "รักษาโรคเหงือก", "ลดฟันผุ"], ans: 0 },
+                { q: "2. สภาวะสำคัญที่ต้องประเมินก่อนฝังรากเทียมคือ?", opts: ["ปริมาณและคุณภาพของกระดูก", "สีฟัน", "จำนวนฟันที่เหลือ", "ความชอบของคนไข้"], ans: 0 },
+                { q: "3. กระบวนการยึดติดของรากเทียมกับกระดูกเรียกว่า?", opts: ["Osseointegration", "Bonding", "Adhesion", "Fusion"], ans: 0 },
+                { q: "4. ปัจจัยใดส่งผลเสียต่อความสำเร็จของรากเทียมมากที่สุด?", opts: ["การสูบบุหรี่และเบาหวานที่คุมไม่ได้", "การแปรงฟัน", "การทานผัก", "อายุ"], ans: 0 },
+                { q: "5. การดูแลรักษาความสะอาดรอบรากเทียมสำคัญอย่างไร?", opts: ["ป้องกันภาวะ Peri-implantitis (การอักเสบรอบรากเทียม)", "ป้องกันฟันผุ", "เพื่อให้ดูสวยงาม", "เพื่อให้มีน้ำลาย"], ans: 0 },
+                { q: "6. ขั้นตอนการทำรากเทียมโดยทั่วไปประกอบด้วย?", opts: ["การผ่าตัดฝังรากและทำส่วนครอบฟัน", "การถอนฟัน", "การอุดฟัน", "การจัดฟัน"], ans: 0 },
+                { q: "7. อุปกรณ์ที่ใช้ตรวจสอบความมั่นคงของรากเทียมคือ?", opts: ["Torque driver/Periotest", "Explorer", "Mirror", "Tweezers"], ans: 0 },
+                { q: "8. อะไรคือวัสดุหลักที่ใช้ทำรากเทียม?", opts: ["Titanium", "Gold", "Amalgam", "Acrylic"], ans: 0 },
+                { q: "9. หากรากเทียมมีการอักเสบรอบๆ เหงือก ควรทำอย่างไร?", opts: ["ทำความสะอาดและรักษาตามอาการ", "ถอนทิ้งทันที", "ไม่ต้องทำอะไร", "ปิดไว้"], ans: 0 },
+                { q: "10. รากเทียมสามารถใช้ทดแทนได้ตั้งแต่กี่ซี่ขึ้นไป?", opts: ["1 ซี่ถึงทั้งปาก", "ต้อง 10 ซี่เท่านั้น", "ไม่ต้องใช้", "เฉพาะฟันหน้า"], ans: 0 }
+            ],
+            "การปฏิบัติอิงหลักฐานเชิงประจักษ์": [
+                { q: "1. หลักการ EBM (Evidence-Based Medicine) คือ?", opts: ["การรักษาโดยใช้หลักฐานที่ดีที่สุดร่วมกับความเชี่ยวชาญและความต้องการผู้ป่วย", "การรักษาตามความเคยชิน", "การรักษาตามข่าวลือ", "การรักษาตามใจหมอ"], ans: 0 },
+                { q: "2. ลำดับความน่าเชื่อถือของงานวิจัยสูงสุดคือ?", opts: ["Systematic Review / Meta-analysis", "Case report", "Expert opinion", "Case series"], ans: 0 },
+                { q: "3. คำถามวิจัยที่ดีควรประกอบด้วย PICO หมายถึง?", opts: ["Patient, Intervention, Comparison, Outcome", "Person, Idea, Cost, Option", "Patient, Inquiry, Clinic, Objective", "ไม่มีข้อใดถูก"], ans: 0 },
+                { q: "4. การทำ Critical Appraisal คือ?", opts: ["การประเมินคุณภาพงานวิจัยอย่างเป็นระบบ", "การอ่านผ่านๆ", "การคัดลอกงาน", "การทำตามงานวิจัยโดยไม่คิด"], ans: 0 },
+                { q: "5. ประโยชน์ของ EBM ในคลินิกทันตกรรมคือ?", opts: ["เพิ่มประสิทธิภาพและผลลัพธ์การรักษา", "ลดค่าใช้จ่าย", "ให้หมอเก่งขึ้น", "ให้ดูทันสมัย"], ans: 0 },
+                { q: "6. แหล่งสืบค้นข้อมูลวิชาการที่น่าเชื่อถือคือ?", opts: ["PubMed / Cochrane Library", "Facebook", "TikTok", "นิตยสารทั่วไป"], ans: 0 },
+                { q: "7. ข้อมูลใดที่ควรนำมาตัดสินใจรักษาคนไข้?", opts: ["ข้อมูลที่ผ่านการพิสูจน์แล้ว", "ความเชื่อ", "ความโชคดี", "การคาดเดา"], ans: 0 },
+                { q: "8. ความสำคัญของ Statistical significance (P-value) คือ?", opts: ["บ่งบอกถึงผลลัพธ์ว่าไม่ได้เกิดจากความบังเอิญ", "บอกความสวยงาม", "บอกราคา", "บอกน้ำหนัก"], ans: 0 },
+                { q: "9. การประยุกต์ใช้ EBM ต้องคำนึงถึง?", opts: ["ความเหมาะสมกับผู้ป่วยแต่ละราย", "ต้องทำเหมือนกันทุกคน", "ห้ามเปลี่ยนแผน", "ให้ใช้หลักฐานเก่าที่สุด"], ans: 0 },
+                { q: "10. วงจรการเรียนรู้ตลอดชีวิตของทันตแพทย์คือ?", opts: ["Ask, Acquire, Appraise, Apply, Audit", "Sleep, Eat, Work, Play", "Learn, Forget, Rest", "None"], ans: 0 }
+            ],
+            "การบริหารคลินิกทันตกรรม": [
+                { q: "1. หัวใจของการบริหารคลินิกคือ?", opts: ["การบริการที่มีคุณภาพและความยั่งยืน", "การทำกำไรสูงสุด", "การมีอุปกรณ์เยอะ", "การทำโฆษณา"], ans: 0 },
+                { q: "2. การจัดการของเสียติดเชื้อในคลินิกต้อง?", opts: ["เป็นไปตามกฎหมายและมาตรฐานสาธารณสุข", "ทิ้งรวมกับขยะทั่วไป", "เผาหลังร้าน", "เก็บไว้ในตู้เย็น"], ans: 0 },
+                { q: "3. สิ่งสำคัญในการจัดการตารางนัดคือ?", opts: ["ประสิทธิภาพการใช้เวลาและลดการผิดนัด", "นัดให้เต็มตลอดเวลา", "ไม่รับนัดเลย", "นัดให้ซ้ำซ้อน"], ans: 0 },
+                { q: "4. จรรยาบรรณวิชาชีพในการโฆษณาคลินิกคือ?", opts: ["ต้องเป็นความจริงและไม่เกินจริง", "โฆษณาให้เกินจริงไว้ก่อน", "ไม่ต้องโฆษณา", "โฆษณาโดยใช้คนอื่น"], ans: 0 },
+                { q: "5. การบันทึกรายรับ-รายจ่ายมีความสำคัญต่อ?", opts: ["การวางแผนการเงินและภาษี", "ความสนุกส่วนตัว", "การโชว์ผลงาน", "ไม่มีความสำคัญ"], ans: 0 },
+                { q: "6. การดูแลอุปกรณ์เครื่องมือทันตกรรมคือ?", opts: ["การบำรุงรักษาเชิงป้องกัน (Preventive maintenance)", "รอให้พังแล้วซ่อม", "ไม่ดูแลเลย", "ทำความสะอาดด้วยตัวเองคนเดียว"], ans: 0 },
+                { q: "7. การสื่อสารกับคนไข้เพื่อลดข้อร้องเรียนคือ?", opts: ["ความชัดเจนและความเข้าใจในสิทธิผู้ป่วย", "การโต้เถียง", "การนิ่งเฉย", "การให้ส่วนลด"], ans: 0 },
+                { q: "8. ระบบฐานข้อมูลคนไข้ (Patient Records) ต้อง?", opts: ["เป็นความลับและปลอดภัยตามกฎหมาย PDPA", "เปิดเผยต่อสาธารณะ", "แชร์ให้เพื่อนดู", "ไม่ต้องเก็บ"], ans: 0 },
+                { q: "9. การพัฒนาบุคลากรในคลินิกส่งผลต่อ?", opts: ["คุณภาพงานและการบริการ", "เพิ่มจำนวนคนไข้", "ลดค่าใช้จ่าย", "ไม่มีผล"], ans: 0 },
+                { q: "10. ผู้นำในคลินิกที่ดีควรมีลักษณะ?", opts: ["วิสัยทัศน์และการบริหารจัดการที่ดี", "ความเผด็จการ", "ความเกียจคร้าน", "ความไม่สนใจ"], ans: 0 }
+            ],
+            "ฝึกปฏิบัติทันตกรรมพร้อมมูล : ทันตกรรมหัตถการ ๔": [
+                { q: "1. การบูรณะฟันหน้าด้วยวัสดุที่ต้องอาศัยเทคนิคสูงคือ?", opts: ["Direct composite veneer", "Amalgam", "Wax", "Cement"], ans: 0 },
+                { q: "2. การเลือกเฉดสี (Shade selection) วัสดุอุดฟันหน้าควรทำเมื่อใด?", opts: ["ก่อนทำการแยกฟันหรือใช้น้ำลาย", "หลังอุดเสร็จ", "ตอนเย็น", "ตอนเช้า"], ans: 0 },
+                { q: "3. ปัญหาวัสดุอุดหลุดบ่อยในฟันหลังมักเกิดจาก?", opts: ["การสบฟันที่ผิดปกติ (Occlusal trauma)", "วัสดุราคาถูก", "อากาศ", "น้ำเปล่า"], ans: 0 },
+                { q: "4. วัสดุที่ใช้บูรณะฟันที่สูญเสียเนื้อฟันมากแต่ยังไม่ถึงกับต้องครอบคือ?", opts: ["Inlay/Onlay", "Amalgam", "Composite", "Ceramic"], ans: 0 },
+                { q: "5. การประเมินขอบวัสดุ (Margin) ที่ดีคือ?", opts: ["แนบสนิทและขัดเงาเรียบเนียน", "คม", "เป็นรอย", "ห่าง"], ans: 0 },
+                { q: "6. วัสดุที่ทนทานต่อการขัดถูและสบฟันหนักคือ?", opts: ["Ceramic/Gold/Amalgam", "Acrylic", "Wax", "Alginate"], ans: 0 },
+                { q: "7. เครื่องมือที่ใช้ตรวจหาวัสดุเกินคือ?", opts: ["Explorer", "Forceps", "Mirror", "Bur"], ans: 0 },
+                { q: "8. การลดการเสียวฟันหลังอุดคือ?", opts: ["ใช้ Bonding agent ที่ถูกต้อง", "ใช้หินปูนอุด", "ไม่ทำอะไร", "ถอนฟัน"], ans: 0 },
+                { q: "9. ในคนไข้ที่นอนกัดฟัน วัสดุอุดควรมีคุณสมบัติ?", opts: ["ทนแรงกระแทกสูง", "สวยงามอย่างเดียว", "ไม่สำคัญ", "นิ่ม"], ans: 0 },
+                { q: "10. เป้าหมายหลักของทันตกรรมหัตถการคือ?", opts: ["คงไว้ซึ่งเนื้อฟันและฟังก์ชัน", "ทำให้ฟันยาว", "ถอนฟันให้หมด", "จัดฟัน"], ans: 0 }
+            ],
+            "ฝึกปฏิบัติทันตกรรมพร้อมมูล : ศัลยศาสตร์ช่องปากและใบหน้าขากรรไกร ๓": [
+                { q: "1. การผ่าตัดในผู้ป่วยที่ต้องระวังการหยุดเลือดต้องดูค่าอะไร?", opts: ["PT/PTT/INR", "น้ำตาล", "ตา", "หู"], ans: 0 },
+                { q: "2. ภาวะขากรรไกรหัก (Mandibular fracture) การรักษาเร่งด่วนคือ?", opts: ["ตรึงขากรรไกร (Fixation)", "ถอนฟัน", "อุดฟัน", "ทำฟันปลอม"], ans: 0 },
+                { q: "3. กรณีติดเชื้อในช่องปากจนลามไปลำคอ (Ludwig's angina) อันตรายเพราะ?", opts: ["ทางเดินหายใจอุดกั้น", "ฟันผุ", "ปวดหัว", "น้ำลายไหล"], ans: 0 },
+                { q: "4. วัสดุที่ใช้ดามกระดูกขากรรไกรคือ?", opts: ["Plate and Screw (Miniplate)", "ลวด", "เชือก", "กาว"], ans: 0 },
+                { q: "5. ความสำคัญของการประเมินภาวะสุขภาพก่อนศัลยกรรมขั้นสูงคือ?", opts: ["ลดความเสี่ยงและการดูแลต่อเนื่อง", "ประหยัดเวลา", "ทำตามคิว", "ให้ดูเก่ง"], ans: 0 },
+                { q: "6. การป้องกันการติดเชื้อในห้องผ่าตัดคือ?", opts: ["หลักการปราศจากเชื้อ (Aseptic technique)", "ล้างมือนานๆ", "ให้คนไข้ล้างหน้า", "ใช้ถุงมือสะอาด"], ans: 0 },
+                { q: "7. ภาวะเส้นประสาทคูที่ 5 (Trigeminal neuralgia) รักษาด้วย?", opts: ["ยาและ/หรือการผ่าตัด", "ถอนฟัน", "อุดฟัน", "จัดฟัน"], ans: 0 },
+                { q: "8. อุปกรณ์ที่ช่วยให้ผ่าตัดมองเห็นชัดคือ?", opts: ["Surgical light/Retractor", "Mirror", "Tweezers", "Bur"], ans: 0 },
+                { q: "9. การดูแลหลังผ่าตัดขากรรไกรคือ?", opts: ["การให้อาหารเหลวและประคบเย็น", "การกินข้าวขาหมู", "การนอนเฉยๆ", "การไปออกกำลังกาย"], ans: 0 },
+                { q: "10. จริยธรรมการแจ้งผลการรักษาศัลยกรรมคือ?", opts: ["ความจริงใจและให้ข้อมูลครบถ้วน", "การโกหก", "การไม่แจ้ง", "การให้ญาติแจ้ง"], ans: 0 }
+            ]
+        }
+        // *หมายเหตุ: สำหรับปี 2-6 ในระบบจริง โครงสร้างจะใช้ Object แบบเดียวกันนี้ในการดึงข้อสอบอัตโนมัติ
+    };
+
+    let currentYearStr = "";
+    
+    function startExam() {
+        const name = document.getElementById('studentName').value;
+        const year = document.getElementById('studyYear').value;
+
+        if (!name || !year) {
+            alert("กรุณากรอกชื่อและเลือกชั้นปีให้ครบถ้วน");
+            return;
+        }
+
+        currentYearStr = document.getElementById('studyYear').options[document.getElementById('studyYear').selectedIndex].text;
+        
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('examArea').style.display = 'block';
+
+        renderQuestions(year);
+    }
+
+    function renderQuestions(yearKey) {
+        const examForm = document.getElementById('examForm');
+        examForm.innerHTML = ''; 
+
+        // ตรวจสอบว่ามีข้อมูลปีนี้หรือไม่ (ตัวอย่างนี้มี year1 สมบูรณ์)
+        const subjects = examData[yearKey];
+        
+        if (!subjects) {
+            examForm.innerHTML = `<h3 style="color:red; text-align:center;">กำลังปรับปรุงฐานข้อมูลข้อสอบสำหรับชั้นปีนี้... กรุณาทดสอบด้วย "ปี 1 เทอม 1"</h3>`;
+            return;
+        }
+
+        for (const [subjectName, questions] of Object.entries(subjects)) {
+            const subjectDiv = document.createElement('div');
+            subjectDiv.className = 'subject-container';
+            
+            const title = document.createElement('div');
+            title.className = 'subject-title';
+            title.innerText = `วิชา: ${subjectName}`;
+            subjectDiv.appendChild(title);
+
+            questions.forEach((item, index) => {
+                const qBlock = document.createElement('div');
+                qBlock.className = 'question-block';
+                
+                const qText = document.createElement('div');
+                qText.className = 'question-text';
+                qText.innerText = item.q;
+                qBlock.appendChild(qText);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+
+                item.opts.forEach((opt, optIndex) => {
+                    const label = document.createElement('label');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    // บังคับทำทุกข้อ
+                    radio.required = true;
+                    radio.name = `ans_${subjectName}_${index}`;
+                    radio.value = optIndex;
+
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(opt));
+                    optionsDiv.appendChild(label);
+                });
+
+                qBlock.appendChild(optionsDiv);
+                subjectDiv.appendChild(qBlock);
+            });
+
+            examForm.appendChild(subjectDiv);
+        }
+    }
+
+    function calculateGrade(score) {
+        if (score >= 9) return { letter: 'A', point: 4.0 };
+        if (score >= 8) return { letter: 'B+', point: 3.5 };
+        if (score >= 7) return { letter: 'B', point: 3.0 };
+        if (score >= 6) return { letter: 'C+', point: 2.5 };
+        if (score >= 5) return { letter: 'C', point: 2.0 };
+        if (score >= 4) return { letter: 'D+', point: 1.5 };
+        if (score >= 3) return { letter: 'D', point: 1.0 };
+        return { letter: 'F', point: 0.0 };
+    }
+
+    function submitExam() {
+        const examForm = document.getElementById('examForm');
+        if (!examForm.checkValidity()) {
+            alert("กรุณาทำข้อสอบให้ครบทุกข้อ (ห้ามขาด) ระบบถึงจะประมวลผลได้");
+            return;
+        }
+
+        const name = document.getElementById('studentName').value;
+        const yearKey = document.getElementById('studyYear').value;
+        const subjects = examData[yearKey];
+
+        if (!subjects) return;
+
+        let totalPoints = 0;
+        let subjectCount = 0;
+        let resultsForDB = {};
+
+        const tbody = document.getElementById('gradeBody');
+        tbody.innerHTML = '';
+
+        for (const [subjectName, questions] of Object.entries(subjects)) {
+            let score = 0;
+            questions.forEach((item, index) => {
+                const selected = document.querySelector(`input[name="ans_${subjectName}_${index}"]:checked`);
+                if (selected && parseInt(selected.value) === item.ans) {
+                    score++;
+                }
+            });
+
+            const grade = calculateGrade(score);
+            totalPoints += grade.point;
+            subjectCount++;
+
+            resultsForDB[subjectName] = { score: score, grade: grade.letter };
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${subjectName}</td>
+                <td>${score} / 10</td>
+                <td><strong>${grade.letter}</strong></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        const gpa = (totalPoints / subjectCount).toFixed(2);
+        
+        document.getElementById('resName').innerText = name;
+        document.getElementById('resYear').innerText = currentYearStr;
+        document.getElementById('finalGPA').innerText = gpa;
+
+        document.getElementById('examArea').style.display = 'none';
+        document.getElementById('resultArea').style.display = 'block';
+
+        // บันทึกลง Firebase Firestore
+        db.collection("examResults").add({
+            studentName: name,
+            academicYear: "2569",
+            studyYear: currentYearStr,
+            gpa: gpa,
+            details: resultsForDB,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            console.log("บันทึกข้อมูลนักศึกษาลงฐานข้อมูลสำเร็จ!");
+        }).catch((error) => {
+            console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล: ", error);
+        });
+    }
+</script>
+
+</body>
+</html>
